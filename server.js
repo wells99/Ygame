@@ -7,10 +7,18 @@ const wss = new WebSocket.Server({ port: port });
 const salas = {};
 
 function criarDeck() {
-    let deck = ["CABEÇA DO EXODIA"];
-    for (let i = 0; i < 15; i++) {
-        deck.push("Carta Lixo #" + i);
-    }
+    let deck = ["CABEÇA DO EXODIA", 
+        "Mago Negro",
+        "Dragão Branco de Olhos Azuis",
+        "Dragão Negro de Olhos Vermelhos",
+        "Maga Negra",
+        "Obelisco, o Atormentador",
+        "Slifer, o Dragão do Céu",
+        "O Dragão Alado de Rá",
+        "Força Espelho", "Herói Elementar Neos",
+        "Cyber Dragão",
+        "Kuriboh"];
+
     return deck.sort(() => Math.random() - 0.5);
 }
 
@@ -23,7 +31,7 @@ wss.on('connection', (ws) => {
         // AÇÃO: ENTRAR NA SALA
         if (message.type === 'JOIN_ROOM') {
             const roomCode = message.room;
-            
+
             // Se a sala não existe, cria ela
             if (!salas[roomCode]) {
                 salas[roomCode] = {
@@ -37,7 +45,7 @@ wss.on('connection', (ws) => {
             if (salas[roomCode].players.length < 2) {
                 salaAtual = roomCode;
                 salas[roomCode].players.push(ws);
-                
+
                 // Envia mão inicial
                 ws.send(JSON.stringify({
                     type: 'INITIAL_HAND',
@@ -49,9 +57,9 @@ wss.on('connection', (ws) => {
 
                 // Se completou 2 jogadores, avisa que o jogo pode começar
                 if (salas[roomCode].players.length === 2) {
-                    broadcastToRoom(roomCode, { 
-                        type: 'GAME_START', 
-                        turno: salas[roomCode].turno 
+                    broadcastToRoom(roomCode, {
+                        type: 'GAME_START',
+                        turno: salas[roomCode].turno
                     });
                 }
             } else {
@@ -67,13 +75,13 @@ wss.on('connection', (ws) => {
             // Verifica se é o turno do jogador
             if (playerIndex === sala.turno && sala.players.length === 2) {
                 const card = sala.deck.pop();
-                
+
                 if (card === "CABEÇA DO EXODIA") {
                     ws.send(JSON.stringify({ type: 'WINNER', card: card }));
                     broadcastToRoom(salaAtual, { type: 'GAME_OVER', winner: `Jogador ${playerIndex + 1}` }, ws);
                 } else {
                     ws.send(JSON.stringify({ type: 'DRAWN_CARD', card: card }));
-                    
+
                     // Passa o turno para o outro (0 vira 1, 1 vira 0)
                     sala.turno = sala.turno === 0 ? 1 : 0;
                     broadcastToRoom(salaAtual, { type: 'NEXT_TURN', turno: sala.turno });
